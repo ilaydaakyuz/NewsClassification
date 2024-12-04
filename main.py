@@ -1,6 +1,9 @@
 import pandas as pd
 import json
 import os
+from utils.data_preprocessing.URLRemover import URLRemover
+
+
 
 def main():
     # JSON dosyasının doğru yolunu tanımlıyoruz
@@ -13,9 +16,20 @@ def main():
     # Veriyi DataFrame'e dönüştürme
     df = pd.DataFrame(data)
     
+    # URL'leri kaldırma işlemi
+    df = remove_urls_from_dataframe(df)
+    
     # İlk 5 satırı kontrol etmek için yazdırıyoruz
-    #daha sonra silinebilir
-    #print(df.head())
+    print(df.head())
+
+def remove_urls_from_dataframe(df):
+    """
+    DataFrame'in 'headline' ve 'short_description' sütunlarından URL'leri kaldırır.
+    """
+    df['headline'] = df['headline'].apply(URLRemover.remove_urls)
+    df['short_description'] = df['short_description'].apply(URLRemover.remove_urls)
+    print("URL temizlemesi başarılı")
+    return df    
 
 if __name__ == "__main__":
     main()
