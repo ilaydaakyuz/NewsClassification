@@ -17,9 +17,9 @@ def main():
     df = pd.DataFrame(data)
 
     # Eksik verileri doldurma işlemi
-    df = FillMissingValues.fill_missing_values(df)
+    #df = FillMissingValues.fill_missing_values(df)
     # Eksik değerlerin kontrol edilmesi ve mesaj yazdırılması
-    FillMissingValues.verify_missing_values(df)
+    #FillMissingValues.verify_missing_values(df)
 
     # URL'leri kaldırma işlemi
     df = remove_urls_from_dataframe(df)
