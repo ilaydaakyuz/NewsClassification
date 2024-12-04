@@ -1,16 +1,20 @@
-from utils.data_preprocessing.EmojiRemover import EmojiRemover
 import pandas as pd
 import json
+import os
 
 def main():
-    # JSON verisini satır satır okuma
-  with open('C:\\Users\\Huawei\\OneDrive\\Masaüstü\\Haber Sınıflandırma\\NewsClassification\\data\\News_Category_Dataset_v3.json', 'r', encoding='utf-8') as f:
-    data = [json.loads(line) for line in f]
+    # JSON dosyasının doğru yolunu tanımlıyoruz
+    dataset_path = os.path.join('data', 'News_Category_Dataset_v3.json')  # Dosya adı gereksinime göre düzenlenebilir
+    
+    # JSON dosyasını açma
+    with open(dataset_path, 'r', encoding='utf-8') as f:
+        data = [json.loads(line) for line in f]
 
-    # DataFrame'e dönüştürme
+    # Veriyi DataFrame'e dönüştürme
     df = pd.DataFrame(data)
-    print(df.head())  # İlk 5 satırı yazdırarak doğru şekilde okunduğunu kontrol edin
+    
+    # İlk 5 satırı kontrol etmek için yazdırıyoruz
+    print(df.head())
 
 if __name__ == "__main__":
     main()
-
