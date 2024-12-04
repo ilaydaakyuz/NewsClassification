@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import os
 from utils.data_preprocessing.URLRemover import URLRemover
-
+from utils.data_preprocessing.HashtagMentionRemover import HashtagMentionRemover
 
 
 def main():
@@ -18,6 +18,9 @@ def main():
     
     # URL'leri kaldırma işlemi
     df = remove_urls_from_dataframe(df)
+
+    # Hashtag'leri kaldırma işlemi
+    df = remove_hashtags_from_dataframe(df)
     
     # İlk 5 satırı kontrol etmek için yazdırıyoruz
     print(df.head())
@@ -31,5 +34,13 @@ def remove_urls_from_dataframe(df):
     print("URL temizlemesi başarılı")
     return df    
 
+def remove_hashtags_from_dataframe(df):
+    """
+    DataFrame'in 'headline' ve 'short_description' sütunlarından hashtag'leri kaldırır.
+    """
+    df['headline'] = df['headline'].apply(HashtagMentionRemover.remove_hashtags)
+    df['short_description'] = df['short_description'].apply(HashtagMentionRemover.remove_hashtags)
+    print("Hashtag temizlemesi başarılı")
+    return df  
 if __name__ == "__main__":
     main()
