@@ -15,7 +15,7 @@ def main():
     
     # İlk 5 satırı kontrol etmek için yazdırıyoruz
     #daha sonra silinebilir
-    print(df.head())
+    #print(df.head())
 
 if __name__ == "__main__":
     main()
