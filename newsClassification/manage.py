@@ -4,7 +4,9 @@ import os
 import sys
 
 
+
 def main():
+    print("AAAAAAAAAAAAAAaa")
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'newsClassification.settings')
     try:
