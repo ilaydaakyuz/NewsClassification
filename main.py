@@ -3,7 +3,7 @@ import json
 import os
 from utils.data_preprocessing.URLRemover import URLRemover
 from utils.data_preprocessing.HashtagMentionRemover import HashtagMentionRemover
-
+from utils.data_preprocessing.FillMissingValues import FillMissingValues
 
 def main():
     # JSON dosyasının doğru yolunu tanımlıyoruz
@@ -15,7 +15,12 @@ def main():
 
     # Veriyi DataFrame'e dönüştürme
     df = pd.DataFrame(data)
-    
+
+    # Eksik verileri doldurma işlemi
+    df = FillMissingValues.fill_missing_values(df)
+    # Eksik değerlerin kontrol edilmesi ve mesaj yazdırılması
+    FillMissingValues.verify_missing_values(df)
+
     # URL'leri kaldırma işlemi
     df = remove_urls_from_dataframe(df)
 
