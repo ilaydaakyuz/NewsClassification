@@ -9,27 +9,32 @@ class FillMissingValues:
         """
         # Tüm sütunları kontrol et
         for col in df.columns:
-            if col in ['link', 'headline', 'category', 'short_description', 'authors']:
+            if col in ['headline', 'short_description', 'category', 'keywords']:
                 # Metin sütunları için boş değerleri NaN yap
                 df[col] = df[col].fillna("").replace("", np.nan)  # Boş değerleri NaN yap
                 df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)  # Fazladan boşlukları temizle
 
                 # Eksik olan metinleri önceki ve sonraki 10 haberin metniyle doldur
                 for i in range(len(df)):
-                    if pd.isna(df[col].loc[i]):
+                    if pd.isna(df[col].iloc[i]):
                         # İlk 10 haberi almak için pencere kullanımı
-                        previous_text = " ".join(df[col].loc[max(0, i-10):i].dropna())  # Önceki 10 haber
-                        next_text = " ".join(df[col].loc[i+1:i+11].dropna())  # Sonraki 10 haber
+                        previous_text = " ".join(df[col].iloc[max(0, i-10):i].dropna())  # Önceki 10 haber
+                        next_text = " ".join(df[col].iloc[i+1:i+11].dropna())  # Sonraki 10 haber
                         
                         # Önceki ve sonraki metni birleştirip doldur
                         combined_text = f"{previous_text} {next_text}".strip()
-                        df.loc[i, col] = combined_text if combined_text else "Unknown"
+                        df.iloc[i, df.columns.get_loc(col)] = combined_text if combined_text else "Unknown"
 
-                
             elif col == 'date':
-                # Tarih için eksik değerleri önceki 10 ve sonraki 10'un ortalaması ile doldur
+                # Tarih sütunundaki eksik değerleri önceki ve sonraki tarihlerle doldur
                 df[col] = pd.to_datetime(df[col], errors='coerce')  # Geçerli olmayan tarihleri NaT yap
                 df[col] = df[col].fillna(method='ffill').fillna(method='bfill')  # İleri ve geri doldurma
+            
+            elif col == 'category':
+                # Kategori için eksik değerleri en sık görülen kategori ile doldur
+                most_common = df[col].mode()[0]
+                df[col] = df[col].fillna(most_common)
+
             else:
                 # Numerik sütunlar için önceki ve sonraki 10 değerin ortalamasını kullan
                 df[col] = pd.to_numeric(df[col], errors='coerce')  # Numerik değer yap

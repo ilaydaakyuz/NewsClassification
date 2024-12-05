@@ -1,31 +1,33 @@
 import pandas as pd
-import json
 import os
 from utils.data_preprocessing.URLRemover import URLRemover
 from utils.data_preprocessing.HashtagMentionRemover import HashtagMentionRemover
 from utils.data_preprocessing.FillMissingValues import FillMissingValues
 
 def main():
-    # JSON dosyasının doğru yolunu tanımlıyoruz
-    dataset = os.path.join('data', 'News_Category_Dataset_v3.json')  
+    # Excel dosyasının doğru yolunu tanımlıyoruz
+    dataset = os.path.join('data', 'NewsCategorizer.csv')  # Excel dosyasının adı ve yolu
     
-    # JSON dosyasını açma
-    with open(dataset, 'r', encoding='utf-8') as f:
-        data = [json.loads(line) for line in f]
+    df = pd.read_csv('data/NewsCategorizer.csv')
 
-    # Veriyi DataFrame'e dönüştürme
-    df = pd.DataFrame(data)
+# Eksik değerleri doldurma
+    df = FillMissingValues.fill_missing_values(df)
 
-    # Eksik verileri doldurma işlemi
-    #df = FillMissingValues.fill_missing_values(df)
-    # Eksik değerlerin kontrol edilmesi ve mesaj yazdırılması
-    #FillMissingValues.verify_missing_values(df)
+# Eksik değerleri kontrol etme
+    FillMissingValues.verify_missing_values(df)
+
+
+    print("Eksik veri doldurma işlemi tamamlandı!")
 
     # URL'leri kaldırma işlemi
     df = remove_urls_from_dataframe(df)
 
     # Hashtag'leri kaldırma işlemi
     df = remove_hashtags_from_dataframe(df)
+
+    processed_path = 'data/Processed_NewsCategorizer.csv'
+    df.to_csv(processed_path, index=False)
+    print(f"İşlenmiş veri kaydedildi: {processed_path}")
     
     # İlk 5 satırı kontrol etmek için yazdırıyoruz
     print(df.head())
@@ -34,18 +36,26 @@ def remove_urls_from_dataframe(df):
     """
     DataFrame'in 'headline' ve 'short_description' sütunlarından URL'leri kaldırır.
     """
-    df['headline'] = df['headline'].apply(URLRemover.remove_urls)
-    df['short_description'] = df['short_description'].apply(URLRemover.remove_urls)
+    for col in ['headline', 'short_description']:
+        if col in df.columns:
+            df[col] = df[col].apply(URLRemover.remove_urls)  # URL'leri temizle
     print("URL temizlemesi başarılı")
-    return df    
+    return df  
 
 def remove_hashtags_from_dataframe(df):
     """
-    DataFrame'in 'headline' ve 'short_description' sütunlarından hashtag'leri kaldırır.
+    DataFrame'in 'headline', 'short_description' ve 'keywords' sütunlarından hashtag'leri kaldırır.
     """
-    df['headline'] = df['headline'].apply(HashtagMentionRemover.remove_hashtags)
-    df['short_description'] = df['short_description'].apply(HashtagMentionRemover.remove_hashtags)
-    print("Hashtag temizlemesi başarılı")
-    return df  
+    # İşlenecek sütunlar
+    columns_to_clean = ['headline', 'short_description', 'keywords']
+
+    for col in columns_to_clean:
+        if col in df.columns:  # Sütunun varlığını kontrol et
+            df[col] = df[col].apply(HashtagMentionRemover.remove_hashtags)
+            print(f"{col} sütunundan hashtag'ler temizlendi.")
+    
+    print("Hashtag temizleme işlemi tamamlandı.")
+    return df
+  
 if __name__ == "__main__":
     main()
