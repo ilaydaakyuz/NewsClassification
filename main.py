@@ -24,10 +24,13 @@ except LookupError:
     nltk.download('stopwords')
     
 def main():
-    # Excel dosyasının doğru yolunu tanımlıyoruz
-    dataset = os.path.join('data', 'NewsCategorizer.csv')  # Excel dosyasının adı ve yolu
+    # Projenin konumunu buluyoruz
+    project_root = os.path.dirname(os.path.abspath(__file__))
     
-    df = pd.read_csv('data/NewsCategorizer.csv')
+    # Excel dosyasının doğru yolunu tanımlıyoruz
+    dataset = os.path.join(project_root, 'data', 'NewsCategorizer.csv')  # Excel dosyasının adı ve yolu
+    
+    df = pd.read_csv(dataset)
 
 # Eksik değerleri doldurma
     df = FillMissingValues.fill_missing_values(df)
@@ -86,10 +89,11 @@ def main():
 
    
 
-    processed_path = 'data/Processed_NewsCategorizer.csv'
+   # İşlem sonrası kaydedilecek yol
+    processed_path = os.path.join(project_root, 'data', 'Processed_NewsCategorizer.csv')
     df.to_csv(processed_path, index=False)
     print(f"İşlenmiş veri kaydedildi: {processed_path}")
-    
+
     # İlk 5 satırı kontrol etmek için yazdırıyoruz
     #print(df.head())
 
