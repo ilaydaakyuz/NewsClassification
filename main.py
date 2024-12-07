@@ -1,3 +1,5 @@
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.utils import to_categorical
 import pandas as pd
 import os
 import nltk
@@ -15,27 +17,45 @@ from utils.data_preprocessing.HashtagMentionRemover import HashtagMentionRemover
 from utils.data_preprocessing.FillMissingValues import FillMissingValues
 from utils.data_preprocessing.RemovePunctuation import RemovePunctuation
 
-
-try:
-    stop_words = set(stopwords.words('english'))
-    print("Stopwords başarıyla yüklendi!")
-except LookupError:
-    print("Stopwords bulunamadı. Şimdi indiriliyor...")
-    nltk.download('stopwords')
-    
 def main():
-    # Projenin konumunu buluyoruz
+    # Stopwords'leri yükle
+    load_stopwords()
+
+    # Projenin konumunu bul
     project_root = os.path.dirname(os.path.abspath(__file__))
-    
-    # Excel dosyasının doğru yolunu tanımlıyoruz
-    dataset = os.path.join(project_root, 'data', 'NewsCategorizer.csv')  # Excel dosyasının adı ve yolu
-    
-    df = pd.read_csv(dataset)
+    dataset_path = os.path.join(project_root, 'data', 'NewsCategorizer.csv')
+    processed_path = os.path.join(project_root, 'data', 'Processed_NewsCategorizer.csv')
 
-# Eksik değerleri doldurma
+    # Veriyi yükle
+    df = load_dataset(dataset_path)
+
+    # Veriyi ön işle
+    df = preprocess_dataframe(df,project_root)
+
+    # Özellik hazırlama işlemleri
+    df = feature_preparation(df)
+
+    # İşlenmiş veriyi kaydet
+    save_preprocessed_data(df, processed_path)
+
+
+def load_stopwords():
+    try:
+        stop_words = set(stopwords.words('english'))
+        print("Stopwords başarıyla yüklendi!")
+    except LookupError:
+        print("Stopwords bulunamadı. Şimdi indiriliyor...")
+        nltk.download('stopwords')
+
+
+def load_dataset(file_path):
+    """Veri setini yükler."""
+    return pd.read_csv(file_path)
+
+
+def preprocess_dataframe(df,project_root):
+    """DataFrame üzerinde tüm ön işleme adımlarını uygular."""
     df = FillMissingValues.fill_missing_values(df)
-
-# Eksik değerleri kontrol etme
     FillMissingValues.verify_missing_values(df)
 
     df = remove_urls_from_dataframe(df)
@@ -44,187 +64,131 @@ def main():
     df = remove_punctuation_from_dataframe(df)
     df = convert_to_lowercase_in_dataframe(df)
 
-    
-    corrector = TextCorrector()
+    corrector = TextCorrector(project_root)
+    df = apply_text_correction(df, ['headline', 'short_description'], corrector)
 
-    # Yazım düzeltme işlemi
-    columns_to_correct = ['headline', 'short_description']
-    for col in columns_to_correct:
-        if col in df.columns:
-            df = apply_text_correction(df, col, corrector)
+    df = apply_text_expansion(df, ['headline', 'short_description'])
+    df = apply_repeated_char_removal(df, ['headline', 'short_description'])
+    df = apply_stopword_removal(df, ['headline', 'short_description'])
 
-    # Metin genişletme işlemi
-    columns_to_expand = ['headline', 'short_description']
-    for col in columns_to_expand:
-        if col in df.columns:
-            df = apply_text_expansion(df, col)
-
-     # Tekrar eden karakterleri temizleme işlemi
-    columns_to_clean = ['headline', 'short_description']
-    for col in columns_to_clean:
-        if col in df.columns:
-            df = apply_repeated_char_removal(df, col)
-
-    # Stopword temizleme işlemi
-    columns_to_clean = ['headline', 'short_description']
-    for col in columns_to_clean:
-        if col in df.columns:
-            df = apply_stopword_removal(df, col)  
-
-    # Lemmatization işlemi
     lemmatizer = Lemmatizer()
-    columns_to_lemmatize = ['headline', 'short_description']
-    for col in columns_to_lemmatize:
-        if col in df.columns:
-            df = apply_lemmatization(df, col, lemmatizer)     
+    df = apply_lemmatization(df, ['headline', 'short_description'], lemmatizer)
 
-     # Tokenizer oluştur
     tokenizer = Tokenizer()
+    df = apply_tokenization(df, ['headline', 'short_description'], tokenizer)
 
-    # Tokenization işlemi
-    columns_to_tokenize = ['headline', 'short_description']
-    for col in columns_to_tokenize:
-        if col in df.columns:
-            df = apply_tokenization(df, col, tokenizer)           
+    return df
 
-   
 
-   # İşlem sonrası kaydedilecek yol
-    processed_path = os.path.join(project_root, 'data', 'Processed_NewsCategorizer.csv')
-    df.to_csv(processed_path, index=False)
-    print(f"İşlenmiş veri kaydedildi: {processed_path}")
+def feature_preparation(df):
+    """Özellik hazırlama adımlarını uygular."""
+    df = encode_labels(df)
+    df = apply_one_hot_encoding(df)
+    return df
 
-    # İlk 5 satırı kontrol etmek için yazdırıyoruz
-    #print(df.head())
 
+def encode_labels(df):
+    """Kategorik etiketleri sayısal değerlere dönüştürür."""
+    label_encoder = LabelEncoder()
+    df['category_encoded'] = label_encoder.fit_transform(df['category'])
+    print(f"Kategoriler: {label_encoder.classes_}")
+    return df
+
+
+def apply_one_hot_encoding(df):
+    """Sayısal etiketleri one-hot encoding'e dönüştürür."""
+    df['category_onehot'] = list(to_categorical(df['category_encoded']))
+    print("One-hot encoding işlemi tamamlandı.")
+    return df
+
+
+def save_preprocessed_data(df, save_path):
+    """İşlenmiş veriyi kaydeder."""
+    df.to_csv(save_path, index=False)
+    print(f"İşlenmiş veri kaydedildi: {save_path}")
+
+
+# Önceki işleme adımları için fonksiyonlar
 def remove_urls_from_dataframe(df):
-    """
-    DataFrame'in 'headline' ve 'short_description' sütunlarından URL'leri kaldırır.
-    """
     for col in ['headline', 'short_description']:
         if col in df.columns:
-            df[col] = df[col].apply(URLRemover.remove_urls)  # URL'leri temizle
-    print("URL temizlemesi başarılı")
-    return df  
+            df[col] = df[col].apply(URLRemover.remove_urls)
+    return df
+
 
 def remove_hashtags_from_dataframe(df):
-    """
-    DataFrame'in 'headline', 'short_description' ve 'keywords' sütunlarından hashtag'leri kaldırır.
-    """
-    # İşlenecek sütunlar
     columns_to_clean = ['headline', 'short_description', 'keywords']
-
     for col in columns_to_clean:
-        if col in df.columns:  # Sütunun varlığını kontrol et
+        if col in df.columns:
             df[col] = df[col].apply(HashtagMentionRemover.remove_hashtags)
-            print(f"{col} sütunundan hashtag'ler temizlendi.")
-    
-    print("Hashtag temizleme işlemi tamamlandı.")
     return df
+
 
 def remove_emojis_from_dataframe(df):
-    """
-    DataFrame'in 'headline', 'short_description' ve 'keywords' sütunlarından emojileri kaldırır.
-    """
-    # İşlenecek sütunlar
     columns_to_clean = ['headline', 'short_description', 'keywords']
-
     for col in columns_to_clean:
-        if col in df.columns:  # Sütunun varlığını kontrol et
+        if col in df.columns:
             df[col] = df[col].apply(EmojiRemover.remove_emojis)
-            print(f"{col} sütunundan emojiler temizlendi.")
-    
-    print("Emoji temizleme işlemi tamamlandı.")
     return df
+
 
 def remove_punctuation_from_dataframe(df):
-    """
-    DataFrame'in 'headline', 'short_description' ve 'keywords' sütunlarından noktalama işaretlerini kaldırır.
-    """
-    # İşlenecek sütunlar
     columns_to_clean = ['headline', 'short_description', 'keywords']
-
     for col in columns_to_clean:
-        if col in df.columns:  # Sütunun varlığını kontrol et
+        if col in df.columns:
             df[col] = df[col].apply(RemovePunctuation.remove_punctuation)
-            print(f"{col} sütunundan noktalama işaretleri temizlendi.")
-    
-    print("Noktalama işaretleri temizleme işlemi tamamlandı.")
     return df
+
 
 def convert_to_lowercase_in_dataframe(df):
-    """
-    DataFrame'in 'headline', 'short_description' ve 'keywords' sütunlarını küçük harfe dönüştürür.
-    """
-    # İşlenecek sütunlar
     columns_to_clean = ['headline', 'short_description', 'keywords']
-
     for col in columns_to_clean:
-        if col in df.columns:  # Sütunun varlığını kontrol et
+        if col in df.columns:
             df[col] = df[col].apply(LowerCaseConverter.to_lowercase)
-            print(f"{col} sütunundaki metinler küçük harfe dönüştürüldü.")
-    
-    print("Küçük harfe dönüştürme işlemi tamamlandı.")
-    return df
-
-def apply_text_correction(df, column, corrector):
-    """
-    Sadece belirtilen sütunda yazım düzeltmesi uygular ve işlemi parçalara böler.
-    """
-    batch_size = 1000  # Parça boyutu
-    for i in range(0, len(df), batch_size):
-        df.iloc[i:i+batch_size, df.columns.get_loc(column)] = (
-            df.iloc[i:i+batch_size][column].apply(corrector.correct_text)
-        )
-    print(f"{column} sütunundaki yazım hataları düzeltildi.")
     return df
 
 
-def apply_text_expansion(df, column):
-    """
-    DataFrame'in belirtilen sütununda kısaltmaları genişletir.
-    """
-    df[column] = df[column].apply(TextExpander.expand_text)
-    print(f"{column} sütunundaki kısaltmalar genişletildi.")
-    return df
-
-def apply_repeated_char_removal(df, column):
-    """
-    DataFrame'in belirtilen sütunundaki tekrar eden karakterleri kaldırır.
-    """
-    df[column] = df[column].apply(RepeatedCharRemover.remove_repeated_chars)
-    print(f"{column} sütunundaki tekrar eden karakterler temizlendi.")
-    return df
-
-def apply_stopword_removal(df, column):
-    """
-    DataFrame'in belirtilen sütunundaki stopword'leri kaldırır.
-    """
-    df[column] = df[column].apply(RemoveStopwords.remove_stopwords)
-    print(f"{column} sütunundaki stopword'ler kaldırıldı.")
-    return df
-
-def apply_lemmatization(df, column, Lemmatizer):
-    """
-    DataFrame'in belirtilen sütununa lemmatization uygular.
-    """
-    df[column] = df[column].apply(Lemmatizer.lemmatize)
-    print(f"{column} sütununa lemmatization uygulandı.")
-    return df
-
-def apply_tokenization(df, column, Tokenizer):
-    """
-    DataFrame'in belirtilen sütunundaki metinlere tokenization uygular.
-    """
-    df[column] = df[column].apply(Tokenizer.tokenize)
-    print(f"{column} sütununa tokenization uygulandı.")
+def apply_text_correction(df, columns, corrector):
+    for col in columns:
+        if col in df.columns:
+            df[col] = df[col].apply(corrector.correct_text)
     return df
 
 
+def apply_text_expansion(df, columns):
+    for col in columns:
+        if col in df.columns:
+            df[col] = df[col].apply(TextExpander.expand_text)
+    return df
 
 
+def apply_repeated_char_removal(df, columns):
+    for col in columns:
+        if col in df.columns:
+            df[col] = df[col].apply(RepeatedCharRemover.remove_repeated_chars)
+    return df
 
 
-  
+def apply_stopword_removal(df, columns):
+    for col in columns:
+        if col in df.columns:
+            df[col] = df[col].apply(RemoveStopwords.remove_stopwords)
+    return df
+
+
+def apply_lemmatization(df, columns, lemmatizer):
+    for col in columns:
+        if col in df.columns:
+            df[col] = df[col].apply(lemmatizer.lemmatize)
+    return df
+
+
+def apply_tokenization(df, columns, tokenizer):
+    for col in columns:
+        if col in df.columns:
+            df[col] = df[col].apply(tokenizer.tokenize)
+    return df
+
+
 if __name__ == "__main__":
     main()
