@@ -1,7 +1,7 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, Conv1D, GlobalMaxPooling1D, Dense, Dropout
 
-class CNNModel:
+class CNN:
     def __init__(self, max_words=100000, max_len=100, num_classes=10):
         self.max_words = max_words
         self.max_len = max_len

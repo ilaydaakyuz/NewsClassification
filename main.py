@@ -18,7 +18,7 @@ from utils.data_preprocessing.EmojiRemover import EmojiRemover
 from utils.data_preprocessing.HashtagMentionRemover import HashtagMentionRemover
 from utils.data_preprocessing.FillMissingValues import FillMissingValues
 from utils.data_preprocessing.RemovePunctuation import RemovePunctuation
-from utils.model_training.CNN.CNNModel import CNNModel
+from utils.model_training.CNN import CNN
 from utils.feature_preparation.PaddingHandler import PaddingHandler
 from utils.feature_preparation.TextToSequence import TextToSequence
 from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
@@ -36,8 +36,11 @@ def main():
 
     # Veriyi yükle
     df = load_dataset(dataset_path)
+  
+    # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
+    df = df.sample(n=500, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
 
-    # Her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
+    # her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
     #df= load_dataset(processed_path)
     
     # Veriyi ön işle
@@ -47,7 +50,7 @@ def main():
     X, y = feature_preparation(df)
 
     # Metinleri sayısallaştır ve CNN modeli ile eğit
-    train_cnn_model(X, y)
+    train_cnn(X, y)
 
     # İşlenmiş veriyi kaydet
     save_preprocessed_data(df, processed_path)
@@ -95,7 +98,6 @@ def preprocess_dataframe(df,project_root):
     return df
 
 # Veri sayısallaştırma için fonksiyonlar
-
 def feature_preparation(df):
     """
     Veriyi eğitim için hazırlar. Tokenize edilmiş verilerle işlem yapar.
@@ -104,31 +106,66 @@ def feature_preparation(df):
     df = encode_labels(df)
 
     # One-hot encoding
-    y = to_categorical(df['category_encoded'])
+    y = encode_one_hot(df)
 
-    # Tokenize edilmiş headline, short_description ve keywords verilerini birleştiriyoruz
-    df['input_text'] = df['headline'] + df['short_description'] + df['keywords']
+    # Giriş metinlerini birleştir
+    df = create_input_text_column(df)
 
-    X = df['input_text']
-  
     # Kelime dağarcığını oluştur
-    vocab = VocabularyBuilder.build_vocab(df['headline'] + df['short_description'] + df['keywords'])
+    vocab = build_vocabulary(df)
 
-    # TextToSequence sınıfını kullanarak kelimeleri indekslere dönüştür
-    sequences = TextToSequence.convert_to_sequence(df['input_text'].tolist(), vocab)
+    # Metinleri indekslere dönüştür
+    sequences = convert_text_to_sequences(df, vocab)
 
+    # Dizileri padding ile sabit uzunlukta yap
+    X = apply_padding_to_sequences(sequences)
 
-    # PaddingHandler ile sabit uzunlukta dizilere dönüştür
-    X = PaddingHandler.apply_padding(sequences, max_length=100)
-
-    # NumPy dizisine dönüştür
-    X = np.array(X)
-    y = np.array(y)
-
+    # NumPy dizilerine dönüştür
+    X, y = convert_to_numpy_arrays(X, y)
 
     print("Feature preparation tamamlandı.")
     return X, y
 
+
+def encode_one_hot(df):
+    """Kategori etiketlerini One-hot encode eder."""
+    y = to_categorical(df['category_encoded'])
+    return y
+
+
+def create_input_text_column(df):
+    """Tokenize edilmiş sütunları birleştirip giriş metni oluşturur."""
+    df['input_text'] = df['headline'] + df['short_description'] + df['keywords']
+    return df
+
+
+def build_vocabulary(df):
+    """Kelime dağarcığını oluşturur."""
+    vocab = VocabularyBuilder.build_vocab(df['headline'] + df['short_description'] + df['keywords'])
+    print("Kelime dağarcığı oluşturuldu.")
+    return vocab
+
+
+def convert_text_to_sequences(df, vocab):
+    """Metinleri kelime indekslerine dönüştürür."""
+    sequences = TextToSequence.convert_to_sequence(df['input_text'].tolist(), vocab)
+    print("Metinler dizilere dönüştürüldü.")
+    return sequences
+
+
+def apply_padding_to_sequences(sequences, max_length=100):
+    """Dizileri padding ile sabit uzunlukta yapar."""
+    padded_sequences = PaddingHandler.apply_padding(sequences, max_length=max_length)
+    print("Padding işlemi tamamlandı.")
+    return padded_sequences
+
+
+def convert_to_numpy_arrays(X, y):
+    """Verileri NumPy dizilerine dönüştürür."""
+    X = np.array(X)
+    y = np.array(y)
+    print("Veriler NumPy dizilerine dönüştürüldü.")
+    return X, y
 
 def encode_labels(df):
     """Kategorik etiketleri sayısal değerlere dönüştürür."""
@@ -225,17 +262,17 @@ def apply_tokenization(df, columns, tokenizer):
             df[col] = df[col].apply(tokenizer.tokenize)
     return df
 
-def train_cnn_model(X, y):
+def train_cnn(X, y):
     """
     Mevcut tokenize edilmiş verilerle CNN modelini eğitir.
     """
    
-    # CNNModel'i oluştur ve eğit
-    cnn_model = CNNModel(max_words=10000, max_len=100, num_classes=y.shape[1])
-    cnn_model.build_model()
+    # CNN'i oluştur ve eğit
+    cnn = CNN(max_words=10000, max_len=100, num_classes=y.shape[1])
+    cnn.build_model()
 
     # Modeli eğit
-    history = cnn_model.train(X, y, validation_split=0.2, epochs=10, batch_size=32)
+    history = cnn.train(X, y, validation_split=0.2, epochs=10, batch_size=32)
     print("Model eğitimi tamamlandı.")
     return history
 
