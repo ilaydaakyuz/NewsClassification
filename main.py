@@ -22,6 +22,7 @@ from utils.model_training.CNN import CNN
 from utils.feature_preparation.PaddingHandler import PaddingHandler
 from utils.feature_preparation.TextToSequence import TextToSequence
 from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
+from utils.visualization.LearningCurve import LearningCurve
 
 def main():
     
@@ -262,6 +263,11 @@ def apply_tokenization(df, columns, tokenizer):
             df[col] = df[col].apply(tokenizer.tokenize)
     return df
 
+def visualize(history):
+   LearningCurve().plot_learning_curves(history)
+   
+   
+
 def train_cnn(X, y):
     """
     Mevcut tokenize edilmiş verilerle CNN modelini eğitir.
@@ -274,6 +280,9 @@ def train_cnn(X, y):
     # Modeli eğit
     history = cnn.train(X, y, validation_split=0.2, epochs=10, batch_size=32)
     print("Model eğitimi tamamlandı.")
+    
+    visualize(history)
+    
     return history
 
 
