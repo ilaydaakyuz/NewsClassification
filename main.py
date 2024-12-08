@@ -1,9 +1,11 @@
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.utils import to_categorical
 import pandas as pd
+import numpy as np
 import os
 import nltk
 from nltk.corpus import stopwords
+from tensorflow.keras.layers import Input
 from utils.data_preprocessing.Tokenizer import Tokenizer
 from utils.data_preprocessing.Lemmatizer import Lemmatizer
 from utils.data_preprocessing.RemoveStopwords import RemoveStopwords
@@ -16,8 +18,14 @@ from utils.data_preprocessing.EmojiRemover import EmojiRemover
 from utils.data_preprocessing.HashtagMentionRemover import HashtagMentionRemover
 from utils.data_preprocessing.FillMissingValues import FillMissingValues
 from utils.data_preprocessing.RemovePunctuation import RemovePunctuation
+from utils.model_training.CNN.CNNModel import CNNModel
+from utils.feature_preparation.PaddingHandler import PaddingHandler
+from utils.feature_preparation.TextToSequence import TextToSequence
+from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
 
 def main():
+    
+
     # Stopwords'leri yükle
     load_stopwords()
 
@@ -29,11 +37,17 @@ def main():
     # Veriyi yükle
     df = load_dataset(dataset_path)
 
+    # Her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
+    #df= load_dataset(processed_path)
+    
     # Veriyi ön işle
     df = preprocess_dataframe(df,project_root)
-
+    
     # Özellik hazırlama işlemleri
-    df = feature_preparation(df)
+    X, y = feature_preparation(df)
+
+    # Metinleri sayısallaştır ve CNN modeli ile eğit
+    train_cnn_model(X, y)
 
     # İşlenmiş veriyi kaydet
     save_preprocessed_data(df, processed_path)
@@ -62,6 +76,7 @@ def preprocess_dataframe(df,project_root):
     df = remove_hashtags_from_dataframe(df)
     df = remove_emojis_from_dataframe(df)
     df = remove_punctuation_from_dataframe(df)
+        
     df = convert_to_lowercase_in_dataframe(df)
 
     corrector = TextCorrector(project_root)
@@ -75,16 +90,44 @@ def preprocess_dataframe(df,project_root):
     df = apply_lemmatization(df, ['headline', 'short_description'], lemmatizer)
 
     tokenizer = Tokenizer()
-    df = apply_tokenization(df, ['headline', 'short_description'], tokenizer)
+    df = apply_tokenization(df, ['headline', 'short_description','keywords'], tokenizer)
 
     return df
 
+# Veri sayısallaştırma için fonksiyonlar
 
 def feature_preparation(df):
-    """Özellik hazırlama adımlarını uygular."""
+    """
+    Veriyi eğitim için hazırlar. Tokenize edilmiş verilerle işlem yapar.
+    """
+    # Kategorileri sayısallaştır
     df = encode_labels(df)
-    df = apply_one_hot_encoding(df)
-    return df
+
+    # One-hot encoding
+    y = to_categorical(df['category_encoded'])
+
+    # Tokenize edilmiş headline, short_description ve keywords verilerini birleştiriyoruz
+    df['input_text'] = df['headline'] + df['short_description'] + df['keywords']
+
+    X = df['input_text']
+  
+    # Kelime dağarcığını oluştur
+    vocab = VocabularyBuilder.build_vocab(df['headline'] + df['short_description'] + df['keywords'])
+
+    # TextToSequence sınıfını kullanarak kelimeleri indekslere dönüştür
+    sequences = TextToSequence.convert_to_sequence(df['input_text'].tolist(), vocab)
+
+
+    # PaddingHandler ile sabit uzunlukta dizilere dönüştür
+    X = PaddingHandler.apply_padding(sequences, max_length=100)
+
+    # NumPy dizisine dönüştür
+    X = np.array(X)
+    y = np.array(y)
+
+
+    print("Feature preparation tamamlandı.")
+    return X, y
 
 
 def encode_labels(df):
@@ -95,20 +138,13 @@ def encode_labels(df):
     return df
 
 
-def apply_one_hot_encoding(df):
-    """Sayısal etiketleri one-hot encoding'e dönüştürür."""
-    df['category_onehot'] = list(to_categorical(df['category_encoded']))
-    print("One-hot encoding işlemi tamamlandı.")
-    return df
-
-
 def save_preprocessed_data(df, save_path):
     """İşlenmiş veriyi kaydeder."""
     df.to_csv(save_path, index=False)
     print(f"İşlenmiş veri kaydedildi: {save_path}")
 
 
-# Önceki işleme adımları için fonksiyonlar
+# Ön işleme adımları için fonksiyonlar
 def remove_urls_from_dataframe(df):
     for col in ['headline', 'short_description']:
         if col in df.columns:
@@ -188,6 +224,20 @@ def apply_tokenization(df, columns, tokenizer):
         if col in df.columns:
             df[col] = df[col].apply(tokenizer.tokenize)
     return df
+
+def train_cnn_model(X, y):
+    """
+    Mevcut tokenize edilmiş verilerle CNN modelini eğitir.
+    """
+   
+    # CNNModel'i oluştur ve eğit
+    cnn_model = CNNModel(max_words=10000, max_len=100, num_classes=y.shape[1])
+    cnn_model.build_model()
+
+    # Modeli eğit
+    history = cnn_model.train(X, y, validation_split=0.2, epochs=10, batch_size=32)
+    print("Model eğitimi tamamlandı.")
+    return history
 
 
 if __name__ == "__main__":

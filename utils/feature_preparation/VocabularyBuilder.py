@@ -1,6 +1,6 @@
 class VocabularyBuilder:
     @staticmethod
-    def build_vocab(tokenized_texts):
+    def build_vocab(tokenized_texts, max_vocab_size=10000):
         """
         Kelime dağarcığı oluşturur ve her kelimeye bir indeks atar.
         """
