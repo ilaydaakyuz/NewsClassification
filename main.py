@@ -1,5 +1,9 @@
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D
+from tensorflow.keras.models import Model
+
 import pandas as pd
 import numpy as np
 import os
@@ -25,6 +29,9 @@ from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
 from utils.model_training.Hybrid import Hybrid
 from utils.visualization.ComparisonVisualizer import ComparisonVisualizer
 from utils.visualization.LearningCurve import LearningCurve
+from utils.model_training.Transformer import TokenAndPositionEmbedding, TransformerBlock
+
+
 
 
 def main():
@@ -42,7 +49,7 @@ def main():
     df = load_dataset(dataset_path)
   
     # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
-    df = df.sample(n=5000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
+    df = df.sample(n=500, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
 
     # her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
     #df= load_dataset(processed_path)
@@ -123,6 +130,7 @@ def feature_preparation(df):
 
     # Dizileri padding ile sabit uzunlukta yap
     X = apply_padding_to_sequences(sequences)
+
 
     # NumPy dizilerine dönüştür
     X, y = convert_to_numpy_arrays(X, y)
@@ -305,6 +313,45 @@ def train_hybrid(X, y):
     
     return history
 
+def train_transformer(X, y):
+    """
+    Mevcut tokenize edilmiş verilerle Transformer modelini eğitir.
+    """
+    # Model parametreleri
+    maxlen = X.shape[1]  # Giriş dizisinin uzunluğu
+    vocab_size = 10000  # Kelime dağarcığı büyüklüğü
+    embed_dim = 128  # Gömme boyutu
+    num_heads = 4  # Çoklu başlık sayısı
+    ff_dim = 128  # Beslemeli ileri katman boyutu
+    num_classes = y.shape[1]  # Sınıf sayısı
+
+    # Token ve pozisyon gömme
+    inputs = Input(shape=(maxlen,))
+    embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
+    x = embedding_layer(inputs)
+
+    # Transformer bloğu
+    transformer_block = TransformerBlock(embed_dim, num_heads, ff_dim)
+    x = transformer_block(x)
+    
+    # Global Average Pooling ekleyelim
+    x = GlobalAveragePooling1D()(x)
+    
+    # Sınıflandırma katmanları
+    x = Dense(64, activation='relu')(x)
+    x = Dropout(0.1)(x)
+    outputs = Dense(num_classes, activation='softmax')(x)
+
+    # Modeli oluştur
+    model = Model(inputs=inputs, outputs=outputs)
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    # Modeli eğit
+    history = model.fit(X, y, validation_split=0.2, epochs=5, batch_size=32)
+    print("Transformer model eğitimi tamamlandı.")
+
+    return history
+
 def train_models(X, y):
     """
     CNN ve Hibrit modeli art arda eğitir ve sonuçlarını aynı grafikte karşılaştırır.
@@ -317,8 +364,14 @@ def train_models(X, y):
     print("Hibrit modeli eğitiliyor...")
     history_hybrid = train_hybrid(X, y)
 
+    # Transformer Model Eğitim
+    print("Transformer modeli eğitiliyor...")
+    history_transformer = train_transformer(X, y)
+
     # Sonuçları görselleştir
-    ComparisonVisualizer.visualize_comparison(history_cnn, history_hybrid)
+    ComparisonVisualizer.visualize_comparison(history_cnn, history_hybrid,history_transformer)
+
+    LearningCurve().plot_learning_curves(history_transformer)
 
 
 if __name__ == "__main__":
