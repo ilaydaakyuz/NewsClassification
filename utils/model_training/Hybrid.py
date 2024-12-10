@@ -16,18 +16,18 @@ class Hybrid:
         embedding = Embedding(input_dim=self.max_words, output_dim=128, input_length=self.max_len)(input_layer)
 
         # CNN katmanı
-        cnn = Conv1D(128, kernel_size=3, activation='relu', name='cnn_layer')(embedding)
+        cnn = Conv1D(64, kernel_size=3, activation='relu', name='cnn_layer')(embedding)
         cnn = GlobalMaxPooling1D()(cnn)
 
         # LSTM katmanı
-        lstm = LSTM(128, return_sequences=False, name='lstm_layer')(embedding)
+        lstm = LSTM(64, return_sequences=False, name='lstm_layer')(embedding)
 
         # CNN ve LSTM'yi birleştirme
         merged = Concatenate()([cnn, lstm])
 
         # Dense katmanları
-        dense_1 = Dense(128, activation='relu')(merged)
-        dropout = Dropout(0.5)(dense_1)
+        dense_1 = Dense(64, activation='relu')(merged)
+        dropout = Dropout(0.6)(dense_1)
         output = Dense(self.num_classes, activation='softmax', name='output_layer')(dropout)
 
         # Modeli tanımlama
@@ -37,7 +37,7 @@ class Hybrid:
         self.model = model
         return model
 
-    def train(self, X_train, y_train, validation_split=0.2, epochs=10, batch_size=32):
+    def train(self, X_train, y_train, validation_split=0.2, epochs=5, batch_size=32):
         history = self.model.fit(X_train, y_train, validation_split=validation_split, epochs=epochs, batch_size=batch_size)
         return history
 

@@ -42,11 +42,7 @@ def main():
     df = load_dataset(dataset_path)
   
     # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
-<<<<<<< HEAD
     df = df.sample(n=5000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
-=======
-    df = df.sample(n=1000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
->>>>>>> 5c9188258de96435b8f4296f5c6a357e7d4f4fa2
 
     # her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
     #df= load_dataset(processed_path)
@@ -301,7 +297,7 @@ def train_hybrid(X, y):
     hybrid_model.build_model()
 
     # Modeli eğit
-    history = hybrid_model.train(X, y, validation_split=0.2, epochs=10, batch_size=32)
+    history = hybrid_model.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
     print("Hibrit model eğitimi tamamlandı.")
     
     # Öğrenme eğrilerini görselleştir
