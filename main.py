@@ -22,6 +22,8 @@ from utils.model_training.CNN import CNN
 from utils.feature_preparation.PaddingHandler import PaddingHandler
 from utils.feature_preparation.TextToSequence import TextToSequence
 from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
+from utils.model_training.Hybrid import Hybrid
+from utils.visualization.ComparisonVisualizer import ComparisonVisualizer
 from utils.visualization.LearningCurve import LearningCurve
 
 def main():
@@ -39,7 +41,7 @@ def main():
     df = load_dataset(dataset_path)
   
     # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
-    df = df.sample(n=500, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
+    df = df.sample(n=1000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
 
     # her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
     #df= load_dataset(processed_path)
@@ -51,7 +53,7 @@ def main():
     X, y = feature_preparation(df)
 
     # Metinleri sayısallaştır ve CNN modeli ile eğit
-    train_cnn(X, y)
+    train_models(X, y)
 
     # İşlenmiş veriyi kaydet
     save_preprocessed_data(df, processed_path)
@@ -284,6 +286,38 @@ def train_cnn(X, y):
     visualize(history)
     
     return history
+
+def train_hybrid(X, y):
+    """
+    Mevcut tokenize edilmiş verilerle hibrit CNN + LSTM modelini eğitir.
+    """
+    # Hibrit modeli oluştur ve eğit
+    hybrid_model = Hybrid(max_words=10000, max_len=100, num_classes=y.shape[1])
+    hybrid_model.build_model()
+
+    # Modeli eğit
+    history = hybrid_model.train(X, y, validation_split=0.2, epochs=10, batch_size=32)
+    print("Hibrit model eğitimi tamamlandı.")
+    
+    # Öğrenme eğrilerini görselleştir
+    visualize(history)
+    
+    return history
+
+def train_models(X, y):
+    """
+    CNN ve Hibrit modeli art arda eğitir ve sonuçlarını aynı grafikte karşılaştırır.
+    """
+    # CNN Eğitim
+    print("CNN modeli eğitiliyor...")
+    history_cnn = train_cnn(X, y)
+
+    # Hibrit Model Eğitim
+    print("Hibrit modeli eğitiliyor...")
+    history_hybrid = train_hybrid(X, y)
+
+    # Sonuçları görselleştir
+    ComparisonVisualizer.visualize_comparison(history_cnn, history_hybrid)
 
 
 if __name__ == "__main__":
