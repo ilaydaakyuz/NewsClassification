@@ -24,6 +24,7 @@ from utils.feature_preparation.TextToSequence import TextToSequence
 from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
 from utils.visualization.LearningCurve import LearningCurve
 
+
 def main():
     
 
@@ -39,7 +40,7 @@ def main():
     df = load_dataset(dataset_path)
   
     # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
-    df = df.sample(n=500, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
+    df = df.sample(n=5000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
 
     # her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
     #df= load_dataset(processed_path)
@@ -278,7 +279,7 @@ def train_cnn(X, y):
     cnn.build_model()
 
     # Modeli eğit
-    history = cnn.train(X, y, validation_split=0.2, epochs=10, batch_size=32)
+    history = cnn.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
     print("Model eğitimi tamamlandı.")
     
     visualize(history)

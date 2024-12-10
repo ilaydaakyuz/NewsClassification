@@ -11,17 +11,17 @@ class CNN:
     def build_model(self):
         model = Sequential([
             Embedding(self.max_words, 128, input_length=self.max_len),
-            Conv1D(128, 5, activation='relu'),
+            Conv1D(64, 5, activation='relu'),
             GlobalMaxPooling1D(),
-            Dense(128, activation='relu'),
-            Dropout(0.5),
+            Dense(64, activation='relu'),
+            Dropout(0.6),
             Dense(self.num_classes, activation='softmax')
         ])
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         self.model = model
         return model
 
-    def train(self, X_train, y_train, validation_split=0.2, epochs=10, batch_size=32):
+    def train(self, X_train, y_train, validation_split=0.2, epochs=4, batch_size=32):
         return self.model.fit(X_train, y_train, validation_split=validation_split, epochs=epochs, batch_size=batch_size)
 
     def evaluate(self, X_test, y_test):
