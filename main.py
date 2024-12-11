@@ -30,7 +30,7 @@ from utils.model_training.Hybrid import Hybrid
 from utils.visualization.ComparisonVisualizer import ComparisonVisualizer
 from utils.visualization.LearningCurve import LearningCurve
 from utils.model_training.Transformer import TokenAndPositionEmbedding, TransformerBlock
-
+from utils.model_training.LSTM import LSTMModel
 
 
 
@@ -350,6 +350,21 @@ def train_transformer(X, y):
     history = model.fit(X, y, validation_split=0.2, epochs=5, batch_size=32)
     print("Transformer model eğitimi tamamlandı.")
 
+    visualize(history)
+    return history
+
+def train_lstm(X, y):
+    """
+    Tokenize edilmiş verilerle LSTM modelini eğitir.
+    """
+    lstm_model = LSTMModel(max_words=10000, max_len=100, num_classes=y.shape[1])
+    lstm_model.build_model()
+
+    # Modeli eğit
+    history = lstm_model.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
+    print("LSTM modeli eğitimi tamamlandı.")
+    
+    visualize(history)
     return history
 
 def train_models(X, y):
@@ -368,10 +383,14 @@ def train_models(X, y):
     print("Transformer modeli eğitiliyor...")
     history_transformer = train_transformer(X, y)
 
-    # Sonuçları görselleştir
-    ComparisonVisualizer.visualize_comparison(history_cnn, history_hybrid,history_transformer)
+    # LSTM Model Eğitim
+    print("LSTM modeli eğitiliyor...")
+    history_lstm = train_lstm(X, y)
 
-    LearningCurve().plot_learning_curves(history_transformer)
+    # Sonuçları görselleştir
+    ComparisonVisualizer.visualize_comparison(history_cnn, history_hybrid,history_transformer,history_lstm)
+
+    #LearningCurve().plot_learning_curves(history_transformer)
 
 
 if __name__ == "__main__":

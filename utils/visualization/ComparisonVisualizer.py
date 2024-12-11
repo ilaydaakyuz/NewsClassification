@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 class ComparisonVisualizer:
     @staticmethod
-    def visualize_comparison(history_cnn, history_hybrid,history_transformer):
+    def visualize_comparison(history_cnn, history_hybrid,history_transformer,history_lstm):
 
         # Eğitim kaybı (loss) karşılaştırması
         plt.figure()
@@ -12,6 +12,8 @@ class ComparisonVisualizer:
         plt.plot(history_hybrid.history['val_loss'], label="Hybrid - Validation Loss")
         plt.plot(history_transformer.history['loss'], label="Transformer - Training Loss")
         plt.plot(history_transformer.history['val_loss'], label="Transformer - Validation Loss")
+        plt.plot(history_lstm.history['loss'], label="LSTM - Training Loss")
+        plt.plot(history_lstm.history['val_loss'], label="LSTM - Validation Loss")
         plt.title("Training vs Validation Loss")
         plt.xlabel("Epochs")
         plt.ylabel("Loss")
@@ -26,6 +28,8 @@ class ComparisonVisualizer:
         plt.plot(history_hybrid.history['val_accuracy'], label="Hybrid - Validation Accuracy")
         plt.plot(history_transformer.history['accuracy'], label="Transformer - Training Accuracy")
         plt.plot(history_transformer.history['val_accuracy'], label="Transformer - Validation Accuracy")
+        plt.plot(history_lstm.history['accuracy'], label="LSTM - Training Accuracy")
+        plt.plot(history_lstm.history['val_accuracy'], label="LSTM - Validation Accuracy")
         plt.title("Training vs Validation Accuracy")
         plt.xlabel("Epochs")
         plt.ylabel("Accuracy")
