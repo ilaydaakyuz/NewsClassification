@@ -3,10 +3,11 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D
 from tensorflow.keras.models import Model
-
+from tensorflow.keras.backend import clear_session
 import pandas as pd
 import numpy as np
 import os
+import pickle
 import nltk
 from nltk.corpus import stopwords
 from tensorflow.keras.layers import Input
@@ -36,7 +37,6 @@ from utils.model_training.LSTM import LSTMModel
 
 def main():
     
-
     # Stopwords'leri yükle
     load_stopwords()
 
@@ -46,23 +46,24 @@ def main():
     processed_path = os.path.join(project_root, 'data', 'Processed_NewsCategorizer.csv')
 
     # Veriyi yükle
-    df = load_dataset(dataset_path)
-  
-    # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
-    df = df.sample(n=500, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
-
+    #df = load_dataset(dataset_path)
+    
     # her seferinde ön işlem adımları gerçekleşmesin diye direkt işlenmiş veriyi çekiyoruz
-    #df= load_dataset(processed_path)
+    df= load_dataset(processed_path)
     
+    # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
+    df = df.sample(n=2000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
+
     # Veriyi ön işle
-    df = preprocess_dataframe(df,project_root)
+    #df = preprocess_dataframe(df,project_root)
     
-    # Özellik hazırlama işlemleri
+    # Metinleri sayısallaştırma işlemleri
     X, y = feature_preparation(df)
+    
 
-    # Metinleri sayısallaştır ve CNN modeli ile eğit
+    # Modelleri ile eğit
     train_models(X, y)
-
+    
     # İşlenmiş veriyi kaydet
     save_preprocessed_data(df, processed_path)
 
@@ -290,6 +291,11 @@ def train_cnn(X, y):
 
     # Modeli eğit
     history = cnn.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
+    
+   # History'yi kaydet
+    with open('cnn_history.pkl', 'wb') as f:
+        pickle.dump(history.history, f)
+    
     print("Model eğitimi tamamlandı.")
     
     visualize(history)
@@ -303,10 +309,15 @@ def train_hybrid(X, y):
     # Hibrit modeli oluştur ve eğit
     hybrid_model = Hybrid(max_words=10000, max_len=100, num_classes=y.shape[1])
     hybrid_model.build_model()
-
+    
     # Modeli eğit
     history = hybrid_model.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
     print("Hibrit model eğitimi tamamlandı.")
+    
+    # History'yi kaydet
+    with open('hybrid_history.pkl', 'wb') as f:
+        pickle.dump(history.history, f)
+
     
     # Öğrenme eğrilerini görselleştir
     visualize(history)
@@ -350,7 +361,14 @@ def train_transformer(X, y):
     history = model.fit(X, y, validation_split=0.2, epochs=5, batch_size=32)
     print("Transformer model eğitimi tamamlandı.")
 
+    # History'yi kaydet
+    with open('transformer_history.pkl', 'wb') as f:
+        pickle.dump(history.history, f)
+
+    
+    # görselleştir
     visualize(history)
+    
     return history
 
 def train_lstm(X, y):
@@ -364,34 +382,40 @@ def train_lstm(X, y):
     history = lstm_model.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
     print("LSTM modeli eğitimi tamamlandı.")
     
+    # History'yi kaydet
+    with open('lstm_history.pkl', 'wb') as f:
+        pickle.dump(history.history, f)
+    
     visualize(history)
+    
     return history
 
 def train_models(X, y):
     """
-    CNN ve Hibrit modeli art arda eğitir ve sonuçlarını aynı grafikte karşılaştırır.
+    Tüm modelleri eğitir ve history'lerini karşılaştırır.
     """
     # CNN Eğitim
     print("CNN modeli eğitiliyor...")
-    history_cnn = train_cnn(X, y)
+    train_cnn(X, y)
+    clear_session()
 
     # Hibrit Model Eğitim
     print("Hibrit modeli eğitiliyor...")
-    history_hybrid = train_hybrid(X, y)
+    train_hybrid(X, y)
+    clear_session()
 
     # Transformer Model Eğitim
     print("Transformer modeli eğitiliyor...")
-    history_transformer = train_transformer(X, y)
+    train_transformer(X, y)
+    clear_session()
 
     # LSTM Model Eğitim
     print("LSTM modeli eğitiliyor...")
-    history_lstm = train_lstm(X, y)
+    train_lstm(X, y)
+    clear_session()
 
-    # Sonuçları görselleştir
-    ComparisonVisualizer.visualize_comparison(history_cnn, history_hybrid,history_transformer,history_lstm)
-
-    #LearningCurve().plot_learning_curves(history_transformer)
-
+    # Karşılaştırma
+    ComparisonVisualizer.visualize_comparison()
 
 if __name__ == "__main__":
     main()
