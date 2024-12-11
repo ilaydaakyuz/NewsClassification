@@ -11,7 +11,7 @@ class LSTMModel:  # Sınıf adını değiştirin
     def build_model(self):
         # Doğrudan Keras katmanlarını kullanan bir model oluşturun
         model = Sequential([
-            Embedding(self.max_words, 128, input_length=self.max_len),
+            Embedding(self.max_words, 256, input_length=self.max_len),
             LSTM(64, return_sequences=True),  # Keras'ın LSTM katmanı
             GlobalMaxPooling1D(),
             Dense(64, activation='relu'),
