@@ -13,7 +13,7 @@ class Hybrid:
         input_layer = Input(shape=(self.max_len,), name='input_layer')
 
         # Embedding katmanı
-        embedding = Embedding(input_dim=self.max_words, output_dim=128, input_length=self.max_len)(input_layer)
+        embedding = Embedding(input_dim=self.max_words, output_dim=256, input_length=self.max_len)(input_layer)
 
         # CNN katmanı
         cnn = Conv1D(64, kernel_size=3, activation='relu', name='cnn_layer')(embedding)
@@ -27,8 +27,10 @@ class Hybrid:
 
         # Dense katmanları
         dense_1 = Dense(64, activation='relu')(merged)
-        dropout = Dropout(0.6)(dense_1)
+        dropout = Dropout(0.3)(dense_1)
         output = Dense(self.num_classes, activation='softmax', name='output_layer')(dropout)
+        
+
 
         # Modeli tanımlama
         model = Model(inputs=input_layer, outputs=output)
