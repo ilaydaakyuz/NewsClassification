@@ -1,8 +1,11 @@
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling1D
 from tensorflow.keras.models import Model
+from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import custom_object_scope
 from tensorflow.keras.backend import clear_session
 import pandas as pd
 import numpy as np
@@ -60,10 +63,10 @@ def main():
     # Metinleri sayısallaştırma işlemleri
     X, y = feature_preparation(df)
     
-
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
     # Modelleri ile eğit
-    train_models(X, y)
-    
+    train_models(X_train, y_train, X_val, y_val)
+    evaluate_models(X_test, y_test) 
     # İşlenmiş veriyi kaydet
     save_preprocessed_data(df, processed_path)
 
@@ -280,17 +283,19 @@ def visualize(history):
    
    
 
-def train_cnn(X, y):
+def train_cnn(X_train, y_train, X_val, y_val):
     """
     Mevcut tokenize edilmiş verilerle CNN modelini eğitir.
     """
    
     # CNN'i oluştur ve eğit
-    cnn = CNN(max_words=10000, max_len=100, num_classes=y.shape[1])
+    cnn = CNN(max_words=10000, max_len=100, num_classes=y_train.shape[1])
     cnn.build_model()
 
     # Modeli eğit
-    history = cnn.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
+    history = cnn.train(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
+    cnn.model.save('cnn_model.h5')
+
     
    # History'yi kaydet
     with open('cnn_history.pkl', 'wb') as f:
@@ -302,18 +307,18 @@ def train_cnn(X, y):
     
     return history
 
-def train_hybrid(X, y):
+def train_hybrid(X_train, y_train, X_val, y_val):
     """
     Mevcut tokenize edilmiş verilerle hibrit CNN + LSTM modelini eğitir.
     """
     # Hibrit modeli oluştur ve eğit
-    hybrid_model = Hybrid(max_words=10000, max_len=100, num_classes=y.shape[1])
+    hybrid_model = Hybrid(max_words=10000, max_len=100, num_classes=y_train.shape[1])
     hybrid_model.build_model()
     
     # Modeli eğit
-    history = hybrid_model.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
+    history = hybrid_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
     print("Hibrit model eğitimi tamamlandı.")
-    
+    hybrid_model.model.save('hybrid_model.h5')
     # History'yi kaydet
     with open('hybrid_history.pkl', 'wb') as f:
         pickle.dump(history.history, f)
@@ -324,17 +329,17 @@ def train_hybrid(X, y):
     
     return history
 
-def train_transformer(X, y):
+def train_transformer(X_train, y_train, X_val, y_val):
     """
     Mevcut tokenize edilmiş verilerle Transformer modelini eğitir.
     """
     # Model parametreleri
-    maxlen = X.shape[1]  # Giriş dizisinin uzunluğu
+    maxlen = X_train.shape[1]  # Giriş dizisinin uzunluğu
     vocab_size = 10000  # Kelime dağarcığı büyüklüğü
     embed_dim = 128  # Gömme boyutu
     num_heads = 4  # Çoklu başlık sayısı
     ff_dim = 128  # Beslemeli ileri katman boyutu
-    num_classes = y.shape[1]  # Sınıf sayısı
+    num_classes = y_train.shape[1]  # Sınıf sayısı
 
     # Token ve pozisyon gömme
     inputs = Input(shape=(maxlen,))
@@ -358,8 +363,10 @@ def train_transformer(X, y):
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
     # Modeli eğit
-    history = model.fit(X, y, validation_split=0.2, epochs=5, batch_size=32)
+    history = model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
     print("Transformer model eğitimi tamamlandı.")
+
+    model.save('transformer_model.h5')
 
     # History'yi kaydet
     with open('transformer_history.pkl', 'wb') as f:
@@ -371,16 +378,18 @@ def train_transformer(X, y):
     
     return history
 
-def train_lstm(X, y):
+def train_lstm(X_train, y_train, X_val, y_val):
     """
     Tokenize edilmiş verilerle LSTM modelini eğitir.
     """
-    lstm_model = LSTMModel(max_words=10000, max_len=100, num_classes=y.shape[1])
+    lstm_model = LSTMModel(max_words=10000, max_len=100, num_classes=y_train.shape[1])
     lstm_model.build_model()
 
     # Modeli eğit
-    history = lstm_model.train(X, y, validation_split=0.2, epochs=5, batch_size=32)
+    history = lstm_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
     print("LSTM modeli eğitimi tamamlandı.")
+
+    lstm_model.model.save('lstm_model.h5')
     
     # History'yi kaydet
     with open('lstm_history.pkl', 'wb') as f:
@@ -390,32 +399,78 @@ def train_lstm(X, y):
     
     return history
 
-def train_models(X, y):
+def train_models(X_train, y_train, X_val, y_val):
     """
     Tüm modelleri eğitir ve history'lerini karşılaştırır.
     """
     # CNN Eğitim
     print("CNN modeli eğitiliyor...")
-    train_cnn(X, y)
+    train_cnn(X_train, y_train, X_val, y_val)
     clear_session()
 
     # Hibrit Model Eğitim
     print("Hibrit modeli eğitiliyor...")
-    train_hybrid(X, y)
+    train_hybrid(X_train, y_train, X_val, y_val)
     clear_session()
 
     # Transformer Model Eğitim
     print("Transformer modeli eğitiliyor...")
-    train_transformer(X, y)
+    train_transformer(X_train, y_train, X_val, y_val)
     clear_session()
 
     # LSTM Model Eğitim
     print("LSTM modeli eğitiliyor...")
-    train_lstm(X, y)
+    train_lstm(X_train, y_train, X_val, y_val)
     clear_session()
 
     # Karşılaştırma
     ComparisonVisualizer.visualize_comparison()
+
+def split_data(X, y, test_size=0.2, validation_size=0.2):
+    # Test setini ayır
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+    
+    # Doğrulama setini ayır
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=validation_size, random_state=42)
+    
+    return X_train, X_val, X_test, y_train, y_val, y_test    
+
+def evaluate_models(X_test, y_test):
+    """
+    Eğitilmiş modelleri test verisi üzerinde değerlendirir.
+    """
+    # CNN Modeli Yükleme ve Değerlendirme
+    cnn_model = load_model('cnn_model.h5')
+    cnn_loss, cnn_accuracy = cnn_model.evaluate(X_test, y_test)
+    print(f"CNN Model Test Loss: {cnn_loss}, Test Accuracy: {cnn_accuracy}")
+
+    # Hibrit Model Yükleme ve Değerlendirme
+    hybrid_model = load_model('hybrid_model.h5')
+    hybrid_loss, hybrid_accuracy = hybrid_model.evaluate(X_test, y_test)
+    print(f"Hybrid Model Test Loss: {hybrid_loss}, Test Accuracy: {hybrid_accuracy}")
+
+    # Transformer Modeli Yükleme ve Değerlendirme (Özel Katmanlarla)
+    custom_objects = {
+        "TokenAndPositionEmbedding": TokenAndPositionEmbedding,
+        "TransformerBlock": TransformerBlock,
+    }
+    with custom_object_scope({'TokenAndPositionEmbedding': TokenAndPositionEmbedding, 'TransformerBlock': TransformerBlock}):
+        transformer_model = load_model('transformer_model.h5')
+    transformer_loss, transformer_accuracy = transformer_model.evaluate(X_test, y_test)
+    print(f"Transformer Model Test Loss: {transformer_loss}, Test Accuracy: {transformer_accuracy}")
+
+    # LSTM Modeli Yükleme ve Değerlendirme
+    lstm_model = load_model('lstm_model.h5')
+    lstm_loss, lstm_accuracy = lstm_model.evaluate(X_test, y_test)
+    print(f"LSTM Model Test Loss: {lstm_loss}, Test Accuracy: {lstm_accuracy}")
+
+    test_results = {
+        'cnn': {'loss': cnn_loss, 'accuracy': cnn_accuracy},
+        'hybrid': {'loss': hybrid_loss, 'accuracy': hybrid_accuracy},
+        'transformer': {'loss': transformer_loss, 'accuracy': transformer_accuracy},
+        'lstm': {'loss': lstm_loss, 'accuracy': lstm_accuracy},
+    }
+    ComparisonVisualizer.visualize_comparison(test_results)
 
 if __name__ == "__main__":
     main()

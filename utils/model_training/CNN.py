@@ -21,8 +21,8 @@ class CNN:
         self.model = model
         return model
 
-    def train(self, X_train, y_train, validation_split=0.2, epochs=5, batch_size=32):
-        return self.model.fit(X_train, y_train, validation_split=validation_split, epochs=epochs, batch_size=batch_size)
+    def train(self, X_train, y_train,validation_data=None, validation_split=0.2, epochs=5, batch_size=32):
+        return self.model.fit(X_train, y_train,validation_data=validation_data, validation_split=validation_split, epochs=epochs, batch_size=batch_size)
 
     def evaluate(self, X_test, y_test):
         return self.model.evaluate(X_test, y_test)

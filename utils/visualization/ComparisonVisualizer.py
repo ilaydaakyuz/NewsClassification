@@ -12,9 +12,10 @@ class ComparisonVisualizer:
         return history
 
     @staticmethod
-    def visualize_comparison():
+    def visualize_comparison(test_results=None):
         """
         Kaydedilmiş history dosyalarını yükler ve karşılaştırır.
+        Test sonuçlarını da dahil eder.
         """
         # History dosyalarını yükle
         history_cnn = ComparisonVisualizer.load_history('cnn_history.pkl')
@@ -32,7 +33,15 @@ class ComparisonVisualizer:
         plt.plot(history_transformer['val_loss'], label="Transformer - Validation Loss")
         plt.plot(history_lstm['loss'], label="LSTM - Training Loss")
         plt.plot(history_lstm['val_loss'], label="LSTM - Validation Loss")
-        plt.title("Training vs Validation Loss")
+
+        # Test kayıpları (loss) varsa ekle
+        if test_results:
+            plt.axhline(y=test_results['cnn']['loss'], color='r', linestyle='--', label="CNN - Test Loss")
+            plt.axhline(y=test_results['hybrid']['loss'], color='g', linestyle='--', label="Hybrid - Test Loss")
+            plt.axhline(y=test_results['transformer']['loss'], color='b', linestyle='--', label="Transformer - Test Loss")
+            plt.axhline(y=test_results['lstm']['loss'], color='m', linestyle='--', label="LSTM - Test Loss")
+
+        plt.title("Training vs Validation vs Test Loss")
         plt.xlabel("Epochs")
         plt.ylabel("Loss")
         plt.legend()
@@ -48,7 +57,15 @@ class ComparisonVisualizer:
         plt.plot(history_transformer['val_accuracy'], label="Transformer - Validation Accuracy")
         plt.plot(history_lstm['accuracy'], label="LSTM - Training Accuracy")
         plt.plot(history_lstm['val_accuracy'], label="LSTM - Validation Accuracy")
-        plt.title("Training vs Validation Accuracy")
+
+        # Test doğrulukları (accuracy) varsa ekle
+        if test_results:
+            plt.axhline(y=test_results['cnn']['accuracy'], color='r', linestyle='--', label="CNN - Test Accuracy")
+            plt.axhline(y=test_results['hybrid']['accuracy'], color='g', linestyle='--', label="Hybrid - Test Accuracy")
+            plt.axhline(y=test_results['transformer']['accuracy'], color='b', linestyle='--', label="Transformer - Test Accuracy")
+            plt.axhline(y=test_results['lstm']['accuracy'], color='m', linestyle='--', label="LSTM - Test Accuracy")
+
+        plt.title("Training vs Validation vs Test Accuracy")
         plt.xlabel("Epochs")
         plt.ylabel("Accuracy")
         plt.legend()

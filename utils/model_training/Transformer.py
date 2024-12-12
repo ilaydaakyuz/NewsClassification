@@ -6,13 +6,12 @@ from tensorflow.keras.layers import Dense, Dropout
 import tensorflow as tf
 
 class TransformerBlock(Layer):
-    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
-        super(TransformerBlock, self).__init__()
+    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1, **kwargs):
+        super(TransformerBlock, self).__init__(**kwargs)
         self.att = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
         self.ffn = tf.keras.Sequential([
             Dense(ff_dim, activation="relu"),
             Dense(embed_dim),
-            
         ])
         self.layernorm1 = LayerNormalization(epsilon=1e-6)
         self.layernorm2 = LayerNormalization(epsilon=1e-6)
@@ -28,8 +27,8 @@ class TransformerBlock(Layer):
         return self.layernorm2(out1 + ffn_output)
 
 class TokenAndPositionEmbedding(Layer):
-    def __init__(self, maxlen, vocab_size, embed_dim):
-        super(TokenAndPositionEmbedding, self).__init__()
+    def __init__(self, maxlen, vocab_size, embed_dim, **kwargs):
+        super(TokenAndPositionEmbedding, self).__init__(**kwargs)
         self.token_emb = Embedding(input_dim=vocab_size, output_dim=embed_dim)
         self.pos_emb = Embedding(input_dim=maxlen, output_dim=embed_dim)
 
@@ -39,6 +38,7 @@ class TokenAndPositionEmbedding(Layer):
         positions = self.pos_emb(positions)
         x = self.token_emb(x)
         return x + positions
+
 
 def build_transformer_model(maxlen, vocab_size, embed_dim, num_heads, ff_dim, num_classes):
     inputs = tf.keras.Input(shape=(maxlen,))
