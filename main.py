@@ -33,9 +33,9 @@ from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
 from utils.model_training.Hybrid import Hybrid
 from utils.visualization.ComparisonVisualizer import ComparisonVisualizer
 from utils.visualization.LearningCurve import LearningCurve
-from utils.model_training.Transformer import TokenAndPositionEmbedding, TransformerBlock
+#from utils.model_training.Transformer import TokenAndPositionEmbedding, TransformerBlock
 from utils.model_training.LSTM import LSTMModel
-
+from utils.model_training.Transformer import Transformer
 
 
 def main():
@@ -329,54 +329,29 @@ def train_hybrid(X_train, y_train, X_val, y_val):
     
     return history
 
+
 def train_transformer(X_train, y_train, X_val, y_val):
     """
-    Mevcut tokenize edilmiş verilerle Transformer modelini eğitir.
+    Tokenize edilmiş verilerle Transformer modelini eğitir.
     """
-    # Model parametreleri
-    maxlen = X_train.shape[1]  # Giriş dizisinin uzunluğu
-    vocab_size = 10000  # Kelime dağarcığı büyüklüğü
-    embed_dim = 128  # Gömme boyutu
-    num_heads = 4  # Çoklu başlık sayısı
-    ff_dim = 128  # Beslemeli ileri katman boyutu
-    num_classes = y_train.shape[1]  # Sınıf sayısı
-
-    # Token ve pozisyon gömme
-    inputs = Input(shape=(maxlen,))
-    embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
-    x = embedding_layer(inputs)
-
-    # Transformer bloğu
-    transformer_block = TransformerBlock(embed_dim, num_heads, ff_dim)
-    x = transformer_block(x)
-    
-    # Global Average Pooling ekleyelim
-    x = GlobalAveragePooling1D()(x)
-    
-    # Sınıflandırma katmanları
-    x = Dense(64, activation='relu')(x)
-    x = Dropout(0.1)(x)
-    outputs = Dense(num_classes, activation='softmax')(x)
-
-    # Modeli oluştur
-    model = Model(inputs=inputs, outputs=outputs)
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    transformer_model = Transformer(max_words=10000, max_len=100, num_classes=y_train.shape[1])
+    transformer_model.build_model()
 
     # Modeli eğit
-    history = model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
-    print("Transformer model eğitimi tamamlandı.")
-
-    model.save('transformer_model.h5')
+    history = transformer_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
+    transformer_model.model.save('transformer_model.h5')
 
     # History'yi kaydet
     with open('transformer_history.pkl', 'wb') as f:
         pickle.dump(history.history, f)
 
-    
-    # görselleştir
+    print("Transformer modeli eğitimi tamamlandı.")
+
+    # Öğrenme eğrilerini görselleştir
     visualize(history)
-    
+
     return history
+
 
 def train_lstm(X_train, y_train, X_val, y_val):
     """

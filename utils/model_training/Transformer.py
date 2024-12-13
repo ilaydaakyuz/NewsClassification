@@ -1,9 +1,7 @@
+import tensorflow as tf
 from tensorflow.keras.layers import Layer, Embedding, Dense, Dropout, LayerNormalization
 from tensorflow.keras.models import Model
-from tensorflow.keras import layers
-from tensorflow.keras.layers import Dense, Dropout
-
-import tensorflow as tf
+from tensorflow.keras.regularizers import l2
 
 class TransformerBlock(Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1, **kwargs):
@@ -39,33 +37,68 @@ class TokenAndPositionEmbedding(Layer):
         x = self.token_emb(x)
         return x + positions
 
+class Transformer:
+    def __init__(self, max_words=10000, max_len=100, num_classes=10):
+        self.max_words = max_words
+        self.max_len = max_len
+        self.num_classes = num_classes
+        self.model = None
+        self.embed_dim = 128
+        self.num_heads = 4
+        self.ff_dim = 64
 
-def build_transformer_model(maxlen, vocab_size, embed_dim, num_heads, ff_dim, num_classes):
-    inputs = tf.keras.Input(shape=(maxlen,))
-    embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
-    x = embedding_layer(inputs)
-    transformer_block = TransformerBlock(embed_dim, num_heads, ff_dim)
-    x = transformer_block(x,training=True)
-    x = tf.keras.layers.GlobalAveragePooling1D()(x)
-    x = tf.keras.layers.Dropout(0.1)(x)
-    x = tf.keras.layers.Dense(20, activation="relu")(x)
-    x = tf.keras.layers.Dropout(0.1)(x)
-    outputs = tf.keras.layers.Dense(num_classes, activation="softmax")(x)
-    model = Model(inputs=inputs, outputs=outputs)
-    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-    return model
+    def build_model(self):
+        inputs = tf.keras.Input(shape=(self.max_len,))
+        
+        # Embedding katmanı
+        embedding_layer = TokenAndPositionEmbedding(
+            maxlen=self.max_len,
+            vocab_size=self.max_words,
+            embed_dim=self.embed_dim
+        )
+        x = embedding_layer(inputs)
+        
+        # Transformer katmanı
+    
+        transformer_block = TransformerBlock(
+            embed_dim=self.embed_dim,
+            num_heads=self.num_heads,
+            ff_dim=self.ff_dim,
+                 
+        )
+        x = transformer_block(x)
+        
+        
+        
+        # Global pooling
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        
+        # Dense katmanları
+        x = Dense(64, activation="relu", kernel_regularizer=l2(0.001))(x)
+        x = Dropout(0.3)(x)  
+        outputs = Dense(self.num_classes, activation="softmax")(x)
 
-# Eğitim ve test için:
-def train_transformer(X, y):
-    # Giriş uzunluğu
-    maxlen = X.shape[1]
-    num_classes = y.shape[1]
+        self.model = Model(inputs=inputs, outputs=outputs)
+        
+        # Model oluşturma
+        self.model = Model(inputs=inputs, outputs=outputs)
+        self.model.compile(
+            optimizer="adam",
+            loss="categorical_crossentropy",
+            metrics=["accuracy"]
+        )
+        return self.model
 
-    # Transformer modelini oluştur
-    model = build_transformer_model(maxlen, vocab_size=10000, embed_dim=128, num_heads=4, ff_dim=64, num_classes=num_classes)
+    def train(self, X_train, y_train, validation_data=None, validation_split=0.2, epochs=5, batch_size=64):
+        return self.model.fit(
+            X_train,
+            y_train,
+            validation_data=validation_data,
+            validation_split=validation_split,
+            epochs=epochs,
+            batch_size=batch_size
+        )
 
-    # Modeli eğit
-    history = model.fit(X, y, batch_size=32, epochs=5, validation_split=0.2)
-    print("Transformer model eğitimi tamamlandı.")
-    return history
+    def evaluate(self, X_test, y_test):
+        return self.model.evaluate(X_test, y_test)
 
