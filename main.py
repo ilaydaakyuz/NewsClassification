@@ -33,10 +33,9 @@ from utils.feature_preparation.VocabularyBuilder import VocabularyBuilder
 from utils.model_training.Hybrid import Hybrid
 from utils.visualization.ComparisonVisualizer import ComparisonVisualizer
 from utils.visualization.LearningCurve import LearningCurve
-#from utils.model_training.Transformer import TokenAndPositionEmbedding, TransformerBlock
+from utils.model_training.Transformer import TokenAndPositionEmbedding, TransformerBlock
 from utils.model_training.LSTM import LSTMModel
 from utils.model_training.Transformer import Transformer
-
 
 def main():
     
@@ -47,6 +46,7 @@ def main():
     project_root = os.path.dirname(os.path.abspath(__file__))
     dataset_path = os.path.join(project_root, 'data', 'NewsCategorizer.csv')
     processed_path = os.path.join(project_root, 'data', 'Processed_NewsCategorizer.csv')
+    vocab_path = os.path.join(project_root, 'vocab.pkl')  # Kelime dağarcığı dosyası
 
     # Veriyi yükle
     #df = load_dataset(dataset_path)
@@ -55,13 +55,13 @@ def main():
     df= load_dataset(processed_path)
     
     # bilgisayarın yorulmasını önlemek için örnek 500 veri ile işlem yapıyoruz
-    df = df.sample(n=2000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
+    #df = df.sample(n=2000, random_state=42)  # random_state ile aynı veriyi seçmek için sabitlik sağlanır
 
     # Veriyi ön işle
     #df = preprocess_dataframe(df,project_root)
     
     # Metinleri sayısallaştırma işlemleri
-    X, y = feature_preparation(df)
+    X, y = feature_preparation(df,vocab_path)
     
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
     # Modelleri ile eğit
@@ -69,7 +69,6 @@ def main():
     evaluate_models(X_test, y_test) 
     # İşlenmiş veriyi kaydet
     save_preprocessed_data(df, processed_path)
-
 
 def load_stopwords():
     try:
@@ -79,11 +78,9 @@ def load_stopwords():
         print("Stopwords bulunamadı. Şimdi indiriliyor...")
         nltk.download('stopwords')
 
-
 def load_dataset(file_path):
     """Veri setini yükler."""
     return pd.read_csv(file_path)
-
 
 def preprocess_dataframe(df,project_root):
     """DataFrame üzerinde tüm ön işleme adımlarını uygular."""
@@ -109,11 +106,11 @@ def preprocess_dataframe(df,project_root):
 
     tokenizer = Tokenizer()
     df = apply_tokenization(df, ['headline', 'short_description','keywords'], tokenizer)
-
+    
     return df
 
 # Veri sayısallaştırma için fonksiyonlar
-def feature_preparation(df):
+def feature_preparation(df,vocab_path):
     """
     Veriyi eğitim için hazırlar. Tokenize edilmiş verilerle işlem yapar.
     """
@@ -127,7 +124,7 @@ def feature_preparation(df):
     df = create_input_text_column(df)
 
     # Kelime dağarcığını oluştur
-    vocab = build_vocabulary(df)
+    vocab = build_vocabulary(df, vocab_path)
 
     # Metinleri indekslere dönüştür
     sequences = convert_text_to_sequences(df, vocab)
@@ -135,32 +132,27 @@ def feature_preparation(df):
     # Dizileri padding ile sabit uzunlukta yap
     X = apply_padding_to_sequences(sequences)
 
-
     # NumPy dizilerine dönüştür
     X, y = convert_to_numpy_arrays(X, y)
 
     print("Feature preparation tamamlandı.")
     return X, y
 
-
 def encode_one_hot(df):
     """Kategori etiketlerini One-hot encode eder."""
     y = to_categorical(df['category_encoded'])
     return y
-
 
 def create_input_text_column(df):
     """Tokenize edilmiş sütunları birleştirip giriş metni oluşturur."""
     df['input_text'] = df['headline'] + df['short_description'] + df['keywords']
     return df
 
-
-def build_vocabulary(df):
+def build_vocabulary(df,vocab_path):
     """Kelime dağarcığını oluşturur."""
-    vocab = VocabularyBuilder.build_vocab(df['headline'] + df['short_description'] + df['keywords'])
+    vocab = VocabularyBuilder.build_vocab(df['input_text'])
     print("Kelime dağarcığı oluşturuldu.")
     return vocab
-
 
 def convert_text_to_sequences(df, vocab):
     """Metinleri kelime indekslerine dönüştürür."""
@@ -168,13 +160,11 @@ def convert_text_to_sequences(df, vocab):
     print("Metinler dizilere dönüştürüldü.")
     return sequences
 
-
 def apply_padding_to_sequences(sequences, max_length=100):
     """Dizileri padding ile sabit uzunlukta yapar."""
     padded_sequences = PaddingHandler.apply_padding(sequences, max_length=max_length)
     print("Padding işlemi tamamlandı.")
     return padded_sequences
-
 
 def convert_to_numpy_arrays(X, y):
     """Verileri NumPy dizilerine dönüştürür."""
@@ -190,12 +180,10 @@ def encode_labels(df):
     print(f"Kategoriler: {label_encoder.classes_}")
     return df
 
-
 def save_preprocessed_data(df, save_path):
     """İşlenmiş veriyi kaydeder."""
     df.to_csv(save_path, index=False)
     print(f"İşlenmiş veri kaydedildi: {save_path}")
-
 
 # Ön işleme adımları için fonksiyonlar
 def remove_urls_from_dataframe(df):
@@ -204,14 +192,12 @@ def remove_urls_from_dataframe(df):
             df[col] = df[col].apply(URLRemover.remove_urls)
     return df
 
-
 def remove_hashtags_from_dataframe(df):
     columns_to_clean = ['headline', 'short_description', 'keywords']
     for col in columns_to_clean:
         if col in df.columns:
             df[col] = df[col].apply(HashtagMentionRemover.remove_hashtags)
     return df
-
 
 def remove_emojis_from_dataframe(df):
     columns_to_clean = ['headline', 'short_description', 'keywords']
@@ -220,14 +206,12 @@ def remove_emojis_from_dataframe(df):
             df[col] = df[col].apply(EmojiRemover.remove_emojis)
     return df
 
-
 def remove_punctuation_from_dataframe(df):
     columns_to_clean = ['headline', 'short_description', 'keywords']
     for col in columns_to_clean:
         if col in df.columns:
             df[col] = df[col].apply(RemovePunctuation.remove_punctuation)
     return df
-
 
 def convert_to_lowercase_in_dataframe(df):
     columns_to_clean = ['headline', 'short_description', 'keywords']
@@ -236,13 +220,11 @@ def convert_to_lowercase_in_dataframe(df):
             df[col] = df[col].apply(LowerCaseConverter.to_lowercase)
     return df
 
-
 def apply_text_correction(df, columns, corrector):
     for col in columns:
         if col in df.columns:
             df[col] = df[col].apply(corrector.correct_text)
     return df
-
 
 def apply_text_expansion(df, columns):
     for col in columns:
@@ -250,13 +232,11 @@ def apply_text_expansion(df, columns):
             df[col] = df[col].apply(TextExpander.expand_text)
     return df
 
-
 def apply_repeated_char_removal(df, columns):
     for col in columns:
         if col in df.columns:
             df[col] = df[col].apply(RepeatedCharRemover.remove_repeated_chars)
     return df
-
 
 def apply_stopword_removal(df, columns):
     for col in columns:
@@ -264,13 +244,11 @@ def apply_stopword_removal(df, columns):
             df[col] = df[col].apply(RemoveStopwords.remove_stopwords)
     return df
 
-
 def apply_lemmatization(df, columns, lemmatizer):
     for col in columns:
         if col in df.columns:
             df[col] = df[col].apply(lemmatizer.lemmatize)
     return df
-
 
 def apply_tokenization(df, columns, tokenizer):
     for col in columns:
@@ -329,7 +307,6 @@ def train_hybrid(X_train, y_train, X_val, y_val):
     
     return history
 
-
 def train_transformer(X_train, y_train, X_val, y_val):
     """
     Tokenize edilmiş verilerle Transformer modelini eğitir.
@@ -351,7 +328,6 @@ def train_transformer(X_train, y_train, X_val, y_val):
     visualize(history)
 
     return history
-
 
 def train_lstm(X_train, y_train, X_val, y_val):
     """
