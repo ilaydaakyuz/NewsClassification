@@ -1,59 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Estetik Web Sayfası</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Haber Sınıflandırması</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"
+    />
     <style>
-        body {
-            background-color: #f5f5dc; /* Krem rengi */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        h1 {
-            margin-bottom: 2rem;
-            font-size: 2rem;
-            text-align: center;
-            color: #333;
-        }
-        .button-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-        }
-        .button-container a {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-decoration: none;
-            color: #333;
-            border: 2px solid #333;
-            border-radius: 8px;
-            transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
-        }
-        .button-container a:hover {
-            background-color: #333;
-            color: #fff;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
+      body {
+        background-color: #f5f5dc; /* Krem rengi */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      h1 {
+        margin-bottom: 1rem;
+        font-size: 2rem;
+        text-align: center;
+        color: #333;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 600px;
+      }
+      .textarea-container {
+        margin-bottom: 1.5rem;
+        width: 100%;
+      }
+      .textarea-container textarea {
+        width: 100%;
+        height: 150px;
+        font-size: 1rem;
+        padding: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        resize: none;
+      }
+      .button-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        width: 100%;
+      }
+      .button-container button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0.8rem 1.5rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-decoration: none;
+        color: #333;
+        border: 2px solid #333;
+        border-radius: 8px;
+        background: #fff;
+        transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+      }
+      .button-container button:hover {
+        background-color: #333;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+      .result-container {
+        margin-top: 1.5rem;
+        font-size: 1.2rem;
+        text-align: center;
+        color: #555;
+      }
     </style>
-</head>
-<body>
-    <main class="container">
-        <h1>Haber Sınıflandırması Model Eğitimleri</h1>
-        <div class="button-container">
-            <a href="/cnn">CNN</a>
-            <a href="/hybrid">Hybrid</a>
-            <a href="/transformer">Transformer</a>
-            <a href="/lstm">LSTM</a>
+  </head>
+  <body>
+    <main>
+      <h1>Haber Sınıflandırması</h1>
+
+      <form method="POST" action="">
+        {% csrf_token %}
+        <textarea
+          name="news_text"
+          placeholder="Metni buraya yazınız..."
+          required
+        ></textarea>
+        <div>
+          <!-- Her buton, farklı bir URL'e yönlenir -->
+          <button type="submit" formaction="{% url 'cnn' %}">CNN</button>
+          <button type="submit" formaction="{% url 'hybrid' %}">Hybrid</button>
+          <button type="submit" formaction="{% url 'lstm' %}">LSTM</button>
         </div>
+      </form>
+
+      {% if prediction %}
+      <div><strong>Tahmin Edilen Kategori:</strong> {{ prediction }}</div>
+      {% endif %}
     </main>
-</body>
+  </body>
 </html>

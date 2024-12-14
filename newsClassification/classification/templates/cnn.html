@@ -1,11 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CNN Sayfası</title>
-</head>
-<body>
-    <h1>CNN Sayfası</h1>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CNN Modeli</title>
+  </head>
+  <body>
+    <h1>CNN Modeli ile Haber Sınıflandırma</h1>
+    <form method="POST">
+      {% csrf_token %}
+      <textarea
+        name="news_text"
+        placeholder="Haber metnini buraya girin..."
+        rows="10"
+        cols="50"
+      ></textarea
+      ><br />
+      <button type="submit">Tahmin Et</button>
+    </form>
+    {% if prediction %}
+    <h2>Tahmin Edilen Kategori: {{ prediction }}</h2>
+    {% endif %}
+  </body>
 </html>

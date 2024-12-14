@@ -1,10 +1,11 @@
 from django.urls import path
 from . import views
+from classification import views  # `views` modülünü import edin
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('cnn/', views.cnn, name='cnn'),
-    path('hybrid/', views.hybrid, name='hybrid'),
-    path('transformer/', views.transformer, name='transformer'),
-    path('lstm/', views.lstm, name='lstm'),
+    path('cnn/', views.predict_category, name='cnn'),
+    path('hybrid/', views.predict_category, name='hybrid'),
+    #path('transformer/', views.predict_category, name='transformer'),
+    path('lstm/', views.predict_category, name='lstm'),
 ]
