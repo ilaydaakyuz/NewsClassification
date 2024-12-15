@@ -281,7 +281,7 @@ def train_cnn(X_train, y_train, X_val, y_val):
     history = cnn.train(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=5,
+        epochs=20,
         batch_size=32,
         callbacks=[early_stopping, lr_scheduler]
     )
@@ -306,7 +306,7 @@ def train_hybrid(X_train, y_train, X_val, y_val):
     hybrid_model.build_model()
     
     # Modeli eğit
-    history = hybrid_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
+    history = hybrid_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=20, batch_size=32)
     print("Hibrit model eğitimi tamamlandı.")
     hybrid_model.model.save('hybrid_model.h5')
     # History'yi kaydet
@@ -327,7 +327,7 @@ def train_transformer(X_train, y_train, X_val, y_val):
     transformer_model.build_model()
 
     # Modeli eğit
-    history = transformer_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
+    history = transformer_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=20, batch_size=32)
     transformer_model.model.save('transformer_model.h5')
 
     # History'yi kaydet
@@ -349,7 +349,7 @@ def train_lstm(X_train, y_train, X_val, y_val):
     lstm_model.build_model()
 
     # Modeli eğit
-    history = lstm_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=5, batch_size=32)
+    history = lstm_model.train(X_train, y_train, validation_data=(X_val, y_val), epochs=20, batch_size=32)
     print("LSTM modeli eğitimi tamamlandı.")
 
     lstm_model.model.save('lstm_model.h5')

@@ -45,7 +45,7 @@ class CNN:
         self.model = model
         return model
 
-    def train(self, X_train, y_train, validation_data=None, validation_split=0.2, epochs=5, batch_size=32, callbacks=None):
+    def train(self, X_train, y_train, validation_data=None, validation_split=0.2, epochs=20, batch_size=32, callbacks=None):
         """
         Modeli eğitir.
         """
